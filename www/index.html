@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#5B9BD5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="description" content="用户外任务和可爱宠物，给宅家的你一份外出的动力">
+  <title>OutGO</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app-container" id="appContainer">
+
+  <!-- ========== 顶部标题栏（动态切换） ========== -->
+  <header class="page-header" id="pageHeader">
+    <h1>☀️ 今日任务</h1>
+    <div class="header-sub">完成户外任务，赚积分养宠物！</div>
+  </header>
+
+  <!-- ========== 首页 — 任务页 ========== -->
+  <main class="page-content page active" id="page-home">
+    <!-- 刷新次数提示 -->
+    <div class="text-center" style="margin-bottom: var(--space-md);">
+      <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">
+        今日免费刷新还剩 <strong id="refreshCount" style="color: var(--color-primary);">3</strong> 次
+      </span>
+    </div>
+
+    <!-- 任务卡片 -->
+    <div class="task-card" id="taskCard">
+      <span class="task-difficulty medium" id="taskDifficulty">🎯 中等难度</span>
+      <div class="task-title" id="taskTitle">去附近的公园散步 20 分钟</div>
+      <div class="task-points">
+        <span class="coin">🪙</span> +<span id="taskPoints">50</span> 积分
+      </div>
+      <div class="task-actions">
+        <button class="btn btn-secondary" id="btnRefresh" onclick="App.refreshTask()">
+          🔄 换一个
+        </button>
+        <button class="btn btn-primary" id="btnComplete" onclick="App.completeTask()">
+          ✅ 完成
+        </button>
+      </div>
+    </div>
+
+    <!-- 鼓励语 -->
+    <div class="encourage-tip">
+      💡 完成越多任务，你的小宠物会越开心哦<span class="heart">❤️</span>
+    </div>
+  </main>
+
+  <!-- ========== 宠物页 ========== -->
+  <main class="page-content page" id="page-pet">
+    <!-- 宠物名字和等级 -->
+    <div class="text-center mb-lg">
+      <h2 style="font-size: var(--font-size-xl); color: var(--color-text-title);">
+        <span id="petName">小咪</span>
+        <span id="petStageBadge" class="stage-badge baby">🌱 幼崽期</span>
+        <span style="font-size: var(--font-size-md); color: var(--color-text-secondary); margin-left: var(--space-sm);">
+          Lv.<span id="petLevel">3</span>
+        </span>
+      </h2>
+    </div>
+
+    <!-- 宠物展示 -->
+    <div class="pet-display" id="petDisplay">
+      <span class="pet-emoji" id="petEmoji">🐱</span>
+    </div>
+
+    <!-- 话语气泡 -->
+    <div class="speech-bubble" id="speechBubble">
+      今天天气一定很好，出去走走吧！
+    </div>
+
+    <!-- 状态条 -->
+    <div style="margin-top: var(--space-lg);">
+      <div class="progress-label">
+        <span class="label-text">😊 心情</span>
+        <span class="label-value" id="moodValue">80 / 100</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill mood" id="moodBar" style="width: 80%;"></div>
+      </div>
+    </div>
+
+    <div style="margin-top: var(--space-md);">
+      <div class="progress-label">
+        <span class="label-text">🌱 成长</span>
+        <span class="label-value" id="growthValue">45 / 100</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill growth" id="growthBar" style="width: 45%;"></div>
+      </div>
+    </div>
+
+    <!-- 互动按钮 -->
+    <div class="task-actions mt-lg">
+      <button class="btn btn-primary" id="btnFeed" onclick="App.feedPet()">
+        🍖 喂食 <span style="font-size:12px;opacity:0.8;">-20分</span>
+      </button>
+      <button class="btn btn-secondary" id="btnPlay" onclick="App.playWithPet()">
+        🎾 玩耍 <span style="font-size:12px;opacity:0.8;">-10分</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- ========== 用户页 ========== -->
+  <main class="page-content page" id="page-user">
+    <!-- 积分卡片 -->
+    <div class="points-card">
+      <div class="points-label">🪙 当前积分</div>
+      <div class="points-value" id="userPoints">1,250</div>
+      <div class="points-label">继续加油，赚更多积分吧！</div>
+    </div>
+
+    <!-- 成就徽章 -->
+    <div class="card">
+      <h3 style="font-size:var(--font-size-md);color:var(--color-text-title);margin-bottom:var(--space-md);">
+        🏆 成就徽章
+      </h3>
+      <div class="achievement-grid" id="achievementGrid">
+        <div class="achievement-item">
+          <div class="achievement-icon unlocked">🌱</div>
+          <div class="achievement-name">初次出门</div>
+        </div>
+        <div class="achievement-item">
+          <div class="achievement-icon unlocked">🚶</div>
+          <div class="achievement-name">小小行者</div>
+        </div>
+        <div class="achievement-item">
+          <div class="achievement-icon unlocked">🏃</div>
+          <div class="achievement-name">户外达人</div>
+        </div>
+        <div class="achievement-item">
+          <div class="achievement-icon locked">🔒</div>
+          <div class="achievement-name">百次挑战</div>
+        </div>
+        <div class="achievement-item">
+          <div class="achievement-icon locked">🔒</div>
+          <div class="achievement-name">困难征服者</div>
+        </div>
+        <div class="achievement-item">
+          <div class="achievement-icon unlocked">⭐</div>
+          <div class="achievement-name">坚持一周</div>
+        </div>
+        <div class="achievement-item">
+          <div class="achievement-icon locked">🔒</div>
+          <div class="achievement-name">月度之星</div>
+        </div>
+        <div class="achievement-item">
+          <div class="achievement-icon locked">🔒</div>
+          <div class="achievement-name">???</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 任务历史 -->
+    <div class="card">
+      <h3 style="font-size:var(--font-size-md);color:var(--color-text-title);margin-bottom:var(--space-md);">
+        📋 任务历史
+      </h3>
+      <ul class="history-list" id="historyList">
+        <li class="history-item">
+          <div class="history-info">
+            <div class="history-title">去附近的公园散步 20 分钟</div>
+            <div class="history-date">2026-08-03</div>
+          </div>
+          <div class="history-points">+50 🪙</div>
+        </li>
+        <li class="history-item">
+          <div class="history-info">
+            <div class="history-title">逛书店 20 分钟</div>
+            <div class="history-date">2026-08-02</div>
+          </div>
+          <div class="history-points">+50 🪙</div>
+        </li>
+        <li class="history-item">
+          <div class="history-info">
+            <div class="history-title">去楼下取快递</div>
+            <div class="history-date">2026-08-01</div>
+          </div>
+          <div class="history-points">+30 🪙</div>
+        </li>
+      </ul>
+      <div class="text-center" style="margin-top:var(--space-md);color:var(--color-text-secondary);font-size:var(--font-size-sm);">
+        暂无更多记录
+      </div>
+    </div>
+  </main>
+
+  <!-- ========== 设置页 ========== -->
+  <main class="page-content page" id="page-settings">
+    <!-- 每日提醒 -->
+    <div class="settings-section">
+      <h3>🔔 每日提醒</h3>
+      <div class="settings-item">
+        <span class="settings-label">开启每日任务提醒</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleReminder" checked onchange="App.toggleReminder()">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="settings-item" id="reminderTimeItem">
+        <span class="settings-label">提醒时间</span>
+        <input type="time" id="reminderTime" value="09:00"
+          style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:4px 8px;font-family:var(--font-family);"
+          onchange="App.setReminderTime()">
+      </div>
+    </div>
+
+    <!-- 自定义任务 -->
+    <div class="settings-section">
+      <h3>📝 自定义任务</h3>
+      <div class="custom-task-input">
+        <input type="text" id="customTaskInput" placeholder="输入你的户外任务…" maxlength="50">
+        <select id="customTaskDifficulty">
+          <option value="easy">🌱 简单</option>
+          <option value="medium" selected>🎯 中等</option>
+          <option value="hard">🔥 困难</option>
+        </select>
+        <button class="btn btn-primary btn-small" onclick="App.addCustomTask()">➕</button>
+      </div>
+      <div id="customTaskList">
+        <!-- 动态填充 -->
+        <div class="settings-item" style="justify-content:center;color:var(--color-text-secondary);font-size:var(--font-size-sm);padding:var(--space-lg);">
+          还没有自定义任务，快添加一个吧！
+        </div>
+      </div>
+    </div>
+
+    <!-- 更换宠物 -->
+    <div class="settings-section">
+      <h3>🐱 更换宠物</h3>
+      <div class="settings-item" style="flex-direction:column;gap:var(--space-md);padding:var(--space-lg);">
+        <div class="pet-selector" id="petSelector">
+          <div class="pet-option selected" data-pet="cat" onclick="App.selectPet('cat')">🐱</div>
+          <div class="pet-option" data-pet="dog" onclick="App.selectPet('dog')">🐶</div>
+          <div class="pet-option" data-pet="bunny" onclick="App.selectPet('bunny')">🐰</div>
+          <div class="pet-option" data-pet="bird" onclick="App.selectPet('bird')">🐤</div>
+        </div>
+        <span style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">
+          更换宠物不会丢失等级和成长数据
+        </span>
+      </div>
+    </div>
+
+    <!-- 关于 -->
+    <div class="settings-section">
+      <h3>ℹ️ 关于</h3>
+      <div class="settings-item">
+        <span class="settings-label">版本</span>
+        <span style="color:var(--color-text-secondary);">v1.0</span>
+      </div>
+      <div class="settings-item" style="justify-content:center;padding:var(--space-lg);">
+        <span style="font-size:var(--font-size-sm);color:var(--color-text-secondary);">
+          🏠 OutGO — 给你一份外出的动力
+        </span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========== 底部导航栏 ========== -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-item active" data-page="home">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">首页</span>
+    </button>
+    <button class="nav-item" data-page="pet">
+      <span class="nav-icon">🐾</span>
+      <span class="nav-label">宠物</span>
+    </button>
+    <button class="nav-item" data-page="user">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">我的</span>
+    </button>
+    <button class="nav-item" data-page="settings">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">设置</span>
+    </button>
+  </nav>
+
+  <!-- ========== 首次使用引导弹窗 ========== -->
+  <div class="modal-overlay hidden" id="onboardingModal">
+    <!-- 步骤 1：欢迎 -->
+    <div class="modal-dialog" id="onboardStep1">
+      <div style="font-size:64px;margin-bottom:var(--space-md);">🏠</div>
+      <h2>欢迎来到 OutGO！</h2>
+      <p>我是你的小助手，会陪伴你走出家门，探索外面的世界。</p>
+      <p style="font-size:var(--font-size-sm);color:var(--color-text-secondary);">
+        完成任务 → 赚积分 → 喂养你的宠物伙伴 🐾
+      </p>
+      <button class="btn btn-primary" onclick="App.onboardNext(2)" style="width:100%;margin-top:var(--space-md);">
+        开始吧！
+      </button>
+    </div>
+
+    <!-- 步骤 2：选择宠物 -->
+    <div class="modal-dialog hidden" id="onboardStep2">
+      <h2>选择你的小伙伴</h2>
+      <p>选一只可爱的宠物陪你一起成长吧！</p>
+      <div class="pet-selector" id="onboardPetSelector" style="margin:var(--space-lg) 0;">
+        <div class="pet-option selected" data-pet="cat" onclick="App.onboardSelectPet('cat')">🐱</div>
+        <div class="pet-option" data-pet="dog" onclick="App.onboardSelectPet('dog')">🐶</div>
+        <div class="pet-option" data-pet="bunny" onclick="App.onboardSelectPet('bunny')">🐰</div>
+        <div class="pet-option" data-pet="bird" onclick="App.onboardSelectPet('bird')">🐤</div>
+      </div>
+      <div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-md);" id="onboardPetDesc">
+        温柔可爱的小猫咪，喜欢陪伴在你身边
+      </div>
+      <button class="btn btn-primary" onclick="App.onboardNext(3)" style="width:100%;">
+        选好了，下一步
+      </button>
+    </div>
+
+    <!-- 步骤 3：起名字 -->
+    <div class="modal-dialog hidden" id="onboardStep3">
+      <h2>给你的小伙伴起个名字</h2>
+      <p>起个好听的名字吧！</p>
+      <div style="font-size:64px;margin:var(--space-md) 0;" id="onboardPetPreview">🐱</div>
+      <input type="text" id="onboardPetName" maxlength="10" placeholder="输入名字（如：小咪）"
+        style="width:100%;padding:12px;border:2px solid var(--color-border);border-radius:var(--radius-md);
+        font-size:var(--font-size-md);text-align:center;font-family:var(--font-family);outline:none;"
+        oninput="document.getElementById('onboardStartBtn').disabled = this.value.trim().length < 1">
+      <button class="btn btn-primary" id="onboardStartBtn" onclick="App.onboardFinish()" style="width:100%;margin-top:var(--space-md);" disabled>
+        开始旅程！
+      </button>
+    </div>
+  </div>
+
+</div><!-- /app-container -->
+
+<script src="js/storage.js"></script>
+<script src="js/tasks.js"></script>
+<script src="js/pet.js"></script>
+<script src="js/app.js"></script>
+
+<!-- Service Worker 注册（PWA 离线支持，WebView 中自动跳过）-->
+<script>
+try {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(function(reg) {
+        console.log('[PWA] Service Worker 已注册:', reg.scope);
+      })
+      .catch(function(err) {
+        console.log('[PWA] Service Worker 注册失败:', err);
+      });
+  }
+} catch (e) {
+  // WebView 环境中 serviceWorker 可能不可用，静默跳过
+  console.log('[App] 非浏览器环境，跳过 Service Worker 注册');
+}
+</script>
+</body>
+</html>

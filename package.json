@@ -1,0 +1,23 @@
+{
+  "name": "zhajiaji",
+  "version": "1.0.0",
+  "description": "OutGO — 用户外任务和可爱宠物，给宅家的你一份外出的动力",
+  "type": "module",
+  "main": "index.html",
+  "scripts": {
+    "generate-icons": "python generate_icons.py",
+    "android": "npm run generate-icons && npx cap sync && npx cap open android",
+    "sync": "npx cap sync"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
+    "typescript": "^7.0.2"
+  }
+}

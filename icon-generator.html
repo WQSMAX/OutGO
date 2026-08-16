@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>图标生成器 - OutGO</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 40px; background: #f5f7fa; }
+    canvas { display: none; }
+    .done { color: green; font-weight: bold; margin-top: 20px; }
+    button { padding: 12px 24px; font-size: 16px; border-radius: 8px; border: none; background: #5B9BD5; color: white; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>🎨 图标生成器</h1>
+  <p>点击按钮生成 PWA 图标文件（192x192 和 512x512）</p>
+  <button onclick="generateIcons()">生成图标</button>
+  <div id="status"></div>
+  <canvas id="c192" width="192" height="192"></canvas>
+  <canvas id="c512" width="512" height="512"></canvas>
+
+  <script>
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      // 蓝色圆形背景
+      const cx = size / 2, cy = size / 2, r = size * 0.42;
+      const gradient = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+      gradient.addColorStop(0, '#7DB9E8');
+      gradient.addColorStop(1, '#5B9BD5');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      // 白色房子
+      ctx.fillStyle = '#FFFFFF';
+      const hs = size * 0.22;
+      const hx = cx - hs, hy = cy - hs * 0.6;
+      ctx.fillRect(hx + hs * 0.3, hy + hs * 0.35, hs * 0.4, hs * 0.65);
+      ctx.beginPath();
+      ctx.moveTo(hx, hy + hs * 0.35);
+      ctx.lineTo(cx, hy - hs * 0.35);
+      ctx.lineTo(hx + hs, hy + hs * 0.35);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function generateIcons() {
+      drawIcon(document.getElementById('c192'), 192);
+      drawIcon(document.getElementById('c512'), 512);
+
+      // 下载 192
+      const link192 = document.createElement('a');
+      link192.download = 'icon-192.png';
+      link192.href = document.getElementById('c192').toDataURL('image/png');
+      link192.click();
+
+      // 下载 512
+      setTimeout(function() {
+        const link512 = document.createElement('a');
+        link512.download = 'icon-512.png';
+        link512.href = document.getElementById('c512').toDataURL('image/png');
+        link512.click();
+        document.getElementById('status').innerHTML =
+          '<div class="done">✅ 图标已生成！请将下载的两个文件移动到 assets/icons/ 文件夹</div>';
+      }, 500);
+    }
+  </script>
+</body>
+</html>

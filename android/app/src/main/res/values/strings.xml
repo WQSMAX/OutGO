@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">OutGO</string>
+    <string name="title_activity_main">OutGO</string>
+    <string name="package_name">com.zhajiaji.app</string>
+    <string name="custom_url_scheme">com.zhajiaji.app</string>
+</resources>
