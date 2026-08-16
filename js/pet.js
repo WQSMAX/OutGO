@@ -38,7 +38,7 @@ const Pet = (function () {
   const FEED_COST = 20;
   const PLAY_COST = 10;
   const FEED_MOOD_BOOST = 20;
-  const PLAY_MOOD_BOOST = 15;
+  const PLAY_GROWTH_BOOST = 10;  // 玩耍消耗积分，增加成长值
 
   // ==================== 心情表情映射 ====================
   function getMoodEmoji(mood) {
@@ -162,11 +162,13 @@ const Pet = (function () {
   // ==================== 宠物操作 ====================
 
   /**
-   * 获取宠物完整状态
+   * 获取宠物状态（可接受 AI 生成的鼓励语覆盖）
+   * @param {string|null} aiEncourageMessage - AI 生成的鼓励语（可选）
    */
-  function getPetState() {
+  function getPetState(aiEncourageMessage) {
     const pet = Storage.getPet();
     const stageNum = getStageNumber(pet.level);
+    const encourageMsg = aiEncourageMessage || getEncourageMessage(pet.mood);
     return {
       ...pet,
       moodEmoji: getMoodEmoji(pet.mood),
@@ -174,7 +176,7 @@ const Pet = (function () {
       moodCssClass: getMoodCssClass(pet.mood),
       growthStage: getGrowthStage(pet.level),
       size: getPetSize(pet.level),
-      encourageMessage: getEncourageMessage(pet.mood),
+      encourageMessage: encourageMsg,
       typeInfo: PET_TYPES[pet.type] || PET_TYPES.cat,
       stageVisual: STAGE_VISUALS[stageNum] || STAGE_VISUALS[1],
       stageImage: (PET_STAGE_IMAGES[pet.type] || {})[stageNum] || null
@@ -279,26 +281,36 @@ const Pet = (function () {
       };
     }
 
-    // 检查是否已满
-    if (pet.mood >= 100) {
-      return {
-        success: false,
-        message: pet.name + '玩累了，让它休息一会儿吧~'
-      };
-    }
-
-    // 消耗积分，提升心情
+    // 消耗积分，增加成长值（不设上限）
     user.points -= PLAY_COST;
-    pet.mood = Math.min(100, pet.mood + PLAY_MOOD_BOOST);
+    pet.growth += PLAY_GROWTH_BOOST;
     pet.lastPlayed = new Date().toISOString();
+
+    // 检查升级
+    var leveledUp = false;
+    while (pet.growth >= 100 && pet.level < 10) {
+      pet.growth -= 100;
+      pet.level++;
+      leveledUp = true;
+    }
+    if (pet.level >= 10 && pet.growth > 100) {
+      pet.growth = 100;
+    }
 
     Storage.saveData(data);
 
+    var msg = '🎾 玩耍成功！' + pet.name + '的成长值 +' + PLAY_GROWTH_BOOST;
+    if (leveledUp) {
+      msg += '\n🌟 宠物升级了！现在是 Lv.' + pet.level;
+    }
+
     return {
       success: true,
-      mood: pet.mood,
+      growth: pet.growth,
+      level: pet.level,
+      leveledUp: leveledUp,
       cost: PLAY_COST,
-      message: '🎾 玩耍成功！' + pet.name + '的心情提升了 ' + PLAY_MOOD_BOOST + ' 点！'
+      message: msg
     };
   }
 
@@ -307,6 +319,107 @@ const Pet = (function () {
    */
   function getPetTypes() {
     return Object.values(PET_TYPES);
+  }
+
+  // ==================== 随机事件系统（新增） ====================
+
+  var RANDOM_EVENTS = [
+    { type: 'happy', chance: 0.15, msg: '在窗台上看到了一只小鸟，兴奋地叫了起来！', effect: '心情+5', moodDelta: 5, growthDelta: 0 },
+    { type: 'happy', chance: 0.10, msg: '追着自己的尾巴转圈，玩得不亦乐乎~', effect: '心情+3', moodDelta: 3, growthDelta: 0 },
+    { type: 'growth', chance: 0.08, msg: '偷偷练习了新技能，感觉自己又成长了！', effect: '成长+5', moodDelta: 0, growthDelta: 5 },
+    { type: 'neutral', chance: 0.12, msg: '把玩具藏到了沙发底下…你得找回来', effect: '无事发生', moodDelta: 0, growthDelta: 0 },
+    { type: 'happy', chance: 0.09, msg: '在家里发现了你藏的零食，开心地分享给你', effect: '心情+8', moodDelta: 8, growthDelta: 0 },
+    { type: 'growth', chance: 0.07, msg: '今天特别有活力，绕着屋子跑了十圈！', effect: '成长+3 心情+3', moodDelta: 3, growthDelta: 3 },
+    { type: 'neutral', chance: 0.06, msg: '一整天都在睡觉…大概是昨晚熬夜守护你了', effect: '无事发生', moodDelta: 0, growthDelta: 0 },
+    { type: 'happy', chance: 0.05, msg: '居然学会了给你开门！虽然只是推了一下门', effect: '心情+10 成长+5', moodDelta: 10, growthDelta: 5 },
+    { type: 'sad', chance: 0.04, msg: '不小心打翻了水杯，现在躲在角落里不敢出来…', effect: '心情-5', moodDelta: -5, growthDelta: 0 },
+    { type: 'growth', chance: 0.04, msg: '在窗边晒太阳，光合作用下好像长高了一点！', effect: '成长+8', moodDelta: 0, growthDelta: 8 },
+    { type: 'happy', chance: 0.03, msg: '做梦梦到了你带它出去散步，醒来一直在门口等你', effect: '心情+5', moodDelta: 5, growthDelta: 0 },
+    { type: 'sad', chance: 0.02, msg: '太久没出门了，趴在地板上叹气…', effect: '心情-8', moodDelta: -8, growthDelta: 0 }
+  ];
+
+  /**
+   * 检查并触发随机事件（每次打开 App 时调用）
+   * @returns {object|null} 事件对象或 null
+   */
+  function checkRandomEvent() {
+    var pet = Storage.getPet();
+
+    // 根据心情调整概率
+    var moodModifier = pet.mood < 30 ? 0.3 : (pet.mood > 70 ? -0.1 : 0);
+
+    // 随机决定是否触发事件（基础概率 40%）
+    if (Math.random() > 0.4 + moodModifier) return null;
+
+    // 随机选择一个事件
+    var rand = Math.random();
+    var cumulative = 0;
+    var selected = null;
+    for (var i = 0; i < RANDOM_EVENTS.length; i++) {
+      cumulative += RANDOM_EVENTS[i].chance;
+      if (rand <= cumulative) { selected = RANDOM_EVENTS[i]; break; }
+    }
+    if (!selected) selected = RANDOM_EVENTS[0];
+
+    // 应用效果
+    var data = Storage.getData();
+    if (selected.moodDelta !== 0) {
+      data.pet.mood = Math.max(0, Math.min(100, data.pet.mood + selected.moodDelta));
+    }
+    if (selected.growthDelta !== 0) {
+      data.pet.growth += selected.growthDelta;
+      // 检查升级
+      while (data.pet.growth >= 100 && data.pet.level < 10) {
+        data.pet.growth -= 100;
+        data.pet.level++;
+      }
+      if (data.pet.level >= 10 && data.pet.growth > 100) {
+        data.pet.growth = 100;
+      }
+    }
+    Storage.saveData(data);
+
+    // 记录事件
+    var displayMsg = selected.msg.replace('你', '我'); // 微调视角
+    Storage.addPetEvent({ type: selected.type, message: displayMsg, effect: selected.effect });
+
+    return { message: displayMsg, effect: selected.effect, type: selected.type };
+  }
+
+  /**
+   * 生成基于天气的气泡语（增强版）
+   * @param {string} weatherSummary 天气摘要
+   */
+  function getWeatherAwareMessage(mood, weatherSummary) {
+    var baseMsg = getEncourageMessage(mood);
+
+    // 如果天气有特殊状况，替换为天气相关话语
+    if (weatherSummary) {
+      if (weatherSummary.indexOf('雨') !== -1) {
+        var rainMessages = [
+          '外面在下雨呢…不过雨天出去走走也很有情调哦~',
+          '下雨天了怎么办？撑把伞去楼下便利店也不错！',
+          '雨声真好听，但雨停了就出去走走吧~'
+        ];
+        return rainMessages[Math.floor(Math.random() * rainMessages.length)];
+      }
+      if (weatherSummary.indexOf('晴') !== -1 || weatherSummary.indexOf('阳光') !== -1) {
+        var sunMessages = [
+          '阳光正好！快点出门晒晒太阳吧！',
+          '这么好的天气不出去太可惜了，我都想出去跑两圈！',
+          '今天太阳公公笑得特别灿烂，它在等你出门呢~'
+        ];
+        return sunMessages[Math.floor(Math.random() * sunMessages.length)];
+      }
+      if (weatherSummary.indexOf('雪') !== -1) {
+        return '下雪啦！出去踩雪一定很好玩，带上我嘛~';
+      }
+      if (weatherSummary.indexOf('风') !== -1 && weatherSummary.indexOf('微') === -1) {
+        return '风有点大…不过穿暖和点出去走走也很舒服！';
+      }
+    }
+
+    return baseMsg;
   }
 
   // ==================== 调试 ====================
@@ -333,6 +446,9 @@ const Pet = (function () {
     feedPet,
     playWithPet,
     getPetTypes,
+    // 随机事件
+    checkRandomEvent,
+    getWeatherAwareMessage,
     // 调试
     debugSetMood
   };

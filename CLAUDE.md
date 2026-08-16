@@ -56,8 +56,12 @@ d:\zhaijiajiliruanjian/
 │   │   ├── app.js         ← 主控制器
 │   │   ├── tasks.js       ← 任务系统
 │   │   ├── pet.js         ← 宠物系统
-│   │   ├── user.js        ← 用户系统
-│   │   └── storage.js     ← 数据持久层
+│   │   ├── storage.js     ← 数据持久层
+│   │   ├── api.js         ← HTTP 客户端（LLM+天气+地图）
+│   │   ├── weather.js     ← 天气模块（Open-Meteo）
+│   │   ├── location.js    ← GPS 定位模块
+│   │   ├── places.js      ← POI 搜索与评分模块
+│   │   └── ai-engine.js   ← AI 推荐引擎
 │   └── assets/
 │       └── icons/         ← PWA 图标
 ├── android/               ← Android 原生项目（Capacitor 自动生成）
@@ -79,7 +83,9 @@ d:\zhaijiajiliruanjian/
 | 应用图标优化 | ✅ 完成（2026-08-08） |
 | 任务完成激励话语 | ✅ 完成（2026-08-08） |
 | APK 构建 | ✅ 完成（2026-08-08） |
-| 下一步 | 真机安装测试 |
+| AI 智能出行助手（阶段 10） | ✅ 完成（2026-08-09） |
+| API Key 加密存储 | ✅ 完成（2026-08-16） |
+| 下一步 | 真机安装测试 / AI 功能联调验证 |
 
 ### 构建环境
 - **JDK**：D:\Android\Android Studio\jbr (JDK 25)
