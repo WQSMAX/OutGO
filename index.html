@@ -50,8 +50,66 @@
     </div>
 
     <!-- 鼓励语 -->
-    <div class="encourage-tip">
+    <div class="encourage-tip" id="encourageTip">
       💡 完成越多任务，你的小宠物会越开心哦<span class="heart">❤️</span>
+    </div>
+
+    <!-- AI 路线入口提示（点击跳转出行页） -->
+    <div class="encourage-tip" id="aiTipHome" style="margin-top:var(--space-sm);">
+      🤖 想要个性化散心路线？<a href="#" onclick="App.switchPage('travel');return false;" style="color:var(--color-primary);font-weight:600;">去出行页看看 →</a>
+    </div>
+  </main>
+
+  <!-- ========== 出行页（新增） — GPS + 周边 + 路线规划 ========== -->
+  <main class="page-content page" id="page-travel">
+    <!-- GPS 状态 -->
+    <div class="text-center" style="margin-bottom:var(--space-md);">
+      <span id="travelGpsStatus" class="gps-indicator loading">⏳ 检测位置中…</span>
+    </div>
+
+    <!-- 天气摘要 -->
+    <div class="route-weather hidden" id="travelWeather" style="margin-bottom:var(--space-md);"></div>
+
+    <!-- 周边地点列表 -->
+    <div class="card hidden" id="travelPlacesCard">
+      <h3 style="font-size:var(--font-size-md);color:var(--color-text-title);margin-bottom:var(--space-md);">
+        📍 周边去处
+      </h3>
+      <div id="travelPlacesList" style="max-height:300px;overflow-y:auto;">
+        <!-- 动态填充 -->
+      </div>
+    </div>
+
+    <!-- AI 路线卡片 -->
+    <div class="route-card hidden" id="travelRouteCard">
+      <div class="route-header">
+        <span class="route-badge ai-badge" id="travelRouteBadge">✨ AI 智能路线</span>
+        <span class="route-status" id="travelRouteStatus"></span>
+      </div>
+      <div class="route-stops" id="travelRouteStops"></div>
+      <div class="route-meta" id="travelRouteMeta"></div>
+      <div class="route-motivation" id="travelRouteMotivation"></div>
+      <div class="route-pet-reaction hidden" id="travelRoutePetReaction"></div>
+      <div class="task-actions">
+        <button class="btn btn-secondary btn-small" id="btnTravelMap" onclick="App.showRouteMap()">🗺️ 查看地图</button>
+        <button class="btn btn-secondary btn-small" id="btnTravelRefresh" onclick="App.refreshAIRoute()">🔄 AI 换条路线</button>
+        <button class="btn btn-primary btn-small" id="btnTravelComplete" onclick="App.completeRoute()">✅ 我开始出发！</button>
+      </div>
+    </div>
+
+    <!-- 空状态提示 -->
+    <div class="card text-center" id="travelEmpty" style="padding:var(--space-xl);">
+      <div style="font-size:64px;margin-bottom:var(--space-md);">🗺️</div>
+      <h3 style="color:var(--color-text-title);margin-bottom:var(--space-sm);">探索你的周边</h3>
+      <p style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-lg);">
+        获取位置信息，AI 为你规划专属散心路线
+      </p>
+      <button class="btn btn-primary" onclick="App.exploreNearby()">
+        📡 开启探索
+      </button>
+      <p style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-top:var(--space-sm);">
+        🔒 位置数据仅保存在本机
+      </p>
     </div>
   </main>
 
@@ -105,7 +163,7 @@
         🍖 喂食 <span style="font-size:12px;opacity:0.8;">-20分</span>
       </button>
       <button class="btn btn-secondary" id="btnPlay" onclick="App.playWithPet()">
-        🎾 玩耍 <span style="font-size:12px;opacity:0.8;">-10分</span>
+        🎾 玩耍 <span style="font-size:12px;opacity:0.8;">-10分 +成长</span>
       </button>
     </div>
   </main>
@@ -117,6 +175,16 @@
       <div class="points-label">🪙 当前积分</div>
       <div class="points-value" id="userPoints">1,250</div>
       <div class="points-label">继续加油，赚更多积分吧！</div>
+    </div>
+
+    <!-- 连续打卡 -->
+    <div class="card" id="streakSection">
+      <!-- 动态填充 -->
+    </div>
+
+    <!-- 使用统计 -->
+    <div class="card" id="statsPanel">
+      <!-- 动态填充 -->
     </div>
 
     <!-- 成就徽章 -->
@@ -250,12 +318,101 @@
       </div>
     </div>
 
+    <!-- ===== AI 智能出行 ===== -->
+    <div class="settings-section">
+      <h3>🤖 AI 智能出行 (DeepSeek)</h3>
+      <div class="settings-item">
+        <span class="settings-label">启用 AI 智能推荐</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleAI" onchange="App.toggleAI()">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="settings-item" style="justify-content:center;padding:var(--space-md);flex-direction:column;gap:var(--space-sm);text-align:center;">
+        <span style="font-size:var(--font-size-sm);color:var(--color-text-body);line-height:1.6;">
+          🆓 <strong>DeepSeek 免费 API</strong>：注册即送 500 万 tokens
+        </span>
+        <button class="btn btn-primary btn-small" onclick="App.openDeepSeekReg()">
+          🔑 获取免费 API Key
+        </button>
+        <span style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">
+          或使用 <a href="#" onclick="App.openDeepSeekChat();return false;" style="color:var(--color-primary);">💬 DeepSeek 网页对话</a>（无需 Key）
+        </span>
+      </div>
+      <div id="aiSettingsDetail" class="hidden">
+        <div class="settings-item" style="flex-direction:column;align-items:stretch;gap:var(--space-sm);">
+          <span class="settings-label">🔑 DeepSeek API Key</span>
+          <input type="password" id="aiApiKey" placeholder="sk-…" class="settings-input"
+            onchange="App.saveAISettings()">
+        </div>
+        <div class="settings-item">
+          <span class="settings-label">路线站数</span>
+          <select id="aiRouteLength" onchange="App.saveAISettings()" class="settings-select">
+            <option value="2">2 站 — 轻量出行</option>
+            <option value="3" selected>3 站 — 推荐</option>
+            <option value="4">4 站 — 丰富路线</option>
+          </select>
+        </div>
+        <div class="settings-item" style="justify-content:center;padding:var(--space-md);">
+          <button class="btn btn-secondary btn-small" onclick="App.testAIConnection()">
+            🔌 测试连接
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 定位设置（新增） ===== -->
+    <div class="settings-section">
+      <h3>📍 定位设置</h3>
+      <div class="settings-item">
+        <span class="settings-label">GPS 自动定位</span>
+        <span id="gpsStatus" style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">检测中…</span>
+      </div>
+      <div class="settings-item" style="flex-direction:column;align-items:stretch;gap:var(--space-sm);">
+        <span class="settings-label">手动城市（GPS 不可用时）</span>
+        <div style="display:flex;gap:var(--space-sm);">
+          <input type="text" id="manualCity" placeholder="输入城市名，如：北京" class="settings-input" style="flex:1;">
+          <button class="btn btn-secondary btn-small" onclick="App.setManualCity()">🔍 搜索</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 偏好设置（新增） ===== -->
+    <div class="settings-section">
+      <h3>🎯 偏好设置</h3>
+      <button class="btn btn-secondary" style="width:100%;margin-bottom:var(--space-sm);" onclick="App.showPreferenceWizard()">
+        配置我的偏好 →
+      </button>
+      <div class="settings-item" style="justify-content:center;padding:var(--space-md);">
+        <span id="preferenceSummary" style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">
+          尚未设置偏好，AI 将使用默认配置
+        </span>
+      </div>
+    </div>
+
+    <!-- 外观与数据 -->
+    <div class="settings-section">
+      <h3>🎨 外观与数据</h3>
+      <div class="settings-item">
+        <span class="settings-label">🌓 深色模式</span>
+        <button class="btn btn-secondary btn-small" onclick="App.toggleDarkMode()">切换</button>
+      </div>
+      <div class="settings-item">
+        <span class="settings-label">📦 导出数据</span>
+        <button class="btn btn-secondary btn-small" onclick="App.exportAppData()">导出</button>
+      </div>
+      <div class="settings-item">
+        <span class="settings-label">📥 导入数据</span>
+        <button class="btn btn-secondary btn-small" onclick="App.importAppData()">导入</button>
+      </div>
+    </div>
+
     <!-- 关于 -->
     <div class="settings-section">
       <h3>ℹ️ 关于</h3>
       <div class="settings-item">
         <span class="settings-label">版本</span>
-        <span style="color:var(--color-text-secondary);">v1.0</span>
+        <span style="color:var(--color-text-secondary);">v2.0</span>
       </div>
       <div class="settings-item" style="justify-content:center;padding:var(--space-lg);">
         <span style="font-size:var(--font-size-sm);color:var(--color-text-secondary);">
@@ -270,6 +427,10 @@
     <button class="nav-item active" data-page="home">
       <span class="nav-icon">🏠</span>
       <span class="nav-label">首页</span>
+    </button>
+    <button class="nav-item" data-page="travel">
+      <span class="nav-icon">🗺️</span>
+      <span class="nav-label">出行</span>
     </button>
     <button class="nav-item" data-page="pet">
       <span class="nav-icon">🐾</span>
@@ -287,11 +448,30 @@
 
   <!-- ========== 首次使用引导弹窗 ========== -->
   <div class="modal-overlay hidden" id="onboardingModal">
-    <!-- 步骤 1：欢迎 -->
-    <div class="modal-dialog" id="onboardStep1">
-      <div style="font-size:64px;margin-bottom:var(--space-md);">🏠</div>
+    <!-- 步骤 0：AI 教程（最先看到） -->
+    <div class="modal-dialog" id="onboardStep0">
+      <div style="font-size:64px;margin-bottom:var(--space-md);">🤖</div>
       <h2>欢迎来到 OutGO！</h2>
-      <p>我是你的小助手，会陪伴你走出家门，探索外面的世界。</p>
+      <p style="font-size:var(--font-size-sm);color:var(--color-text-body);margin-bottom:var(--space-md);text-align:left;line-height:1.8;">
+        OutGO 是一个帮你找到外出动力的智能伙伴 ✨
+      </p>
+      <div style="text-align:left;font-size:var(--font-size-sm);color:var(--color-text-body);margin-bottom:var(--space-lg);line-height:1.8;">
+        <p>🏠 <strong>首页任务</strong>：每天领取户外任务，完成获得积分</p>
+        <p style="margin-top:var(--space-xs);">🗺️ <strong>出行板块</strong>：GPS 定位 + AI 智能规划周边散心路线</p>
+        <p style="margin-top:var(--space-xs);">🐾 <strong>宠物养成</strong>：用积分喂养宠物，陪伴你一起成长</p>
+        <p style="margin-top:var(--space-xs);">🤖 <strong>AI 推荐</strong>：结合天气、位置和偏好，生成专属路线</p>
+        <p style="margin-top:var(--space-xs);">🔒 <strong>隐私优先</strong>：所有数据保存在本机，绝不外传</p>
+      </div>
+      <button class="btn btn-primary" onclick="App.onboardNext(1)" style="width:100%;">
+        知道了，下一步
+      </button>
+    </div>
+
+    <!-- 步骤 1：欢迎 -->
+    <div class="modal-dialog hidden" id="onboardStep1">
+      <div style="font-size:64px;margin-bottom:var(--space-md);">🏠</div>
+      <h2>选一个你的小伙伴</h2>
+      <p>你的宠物会陪伴你，给你外出的动力。</p>
       <p style="font-size:var(--font-size-sm);color:var(--color-text-secondary);">
         完成任务 → 赚积分 → 喂养你的宠物伙伴 🐾
       </p>
@@ -333,8 +513,101 @@
     </div>
   </div>
 
+  <!-- ========== 偏好设置向导弹窗（新增） ========== -->
+  <div class="modal-overlay hidden" id="preferenceModal" onclick="if(event.target===this)App.closePreferenceWizard()">
+    <div class="modal-dialog" id="prefStep1">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-md);">
+        <h2 style="margin:0;">🎯 个性化出行偏好</h2>
+        <button onclick="App.closePreferenceWizard()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--color-text-secondary);">✕</button>
+      </div>
+      <p style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-lg);">
+        告诉我你的喜好，我会为你推荐更合适的路线
+      </p>
+      <div style="text-align:left;margin-bottom:var(--space-lg);">
+        <div style="font-weight:600;margin-bottom:var(--space-sm);">你喜欢去什么样的地方？</div>
+        <div class="interest-chips" id="interestChips">
+          <span class="chip" data-cat="park" onclick="App.toggleChip(this)">🌳 公园绿地</span>
+          <span class="chip" data-cat="cafe" onclick="App.toggleChip(this)">☕ 咖啡馆</span>
+          <span class="chip" data-cat="bookstore" onclick="App.toggleChip(this)">📚 书店</span>
+          <span class="chip" data-cat="restaurant" onclick="App.toggleChip(this)">🍽️ 餐厅</span>
+          <span class="chip" data-cat="museum" onclick="App.toggleChip(this)">🏛️ 博物馆</span>
+          <span class="chip" data-cat="viewpoint" onclick="App.toggleChip(this)">🏞️ 景点</span>
+          <span class="chip" data-cat="garden" onclick="App.toggleChip(this)">🌸 花园</span>
+          <span class="chip" data-cat="bakery" onclick="App.toggleChip(this)">🥐 面包店</span>
+          <span class="chip" data-cat="icecream" onclick="App.toggleChip(this)">🍦 甜品店</span>
+          <span class="chip" data-cat="flowers" onclick="App.toggleChip(this)">💐 花店</span>
+          <span class="chip" data-cat="market" onclick="App.toggleChip(this)">🛍️ 市场</span>
+          <span class="chip" data-cat="art" onclick="App.toggleChip(this)">🎨 美术馆</span>
+        </div>
+      </div>
+      <div style="text-align:left;margin-bottom:var(--space-lg);">
+        <div style="font-weight:600;margin-bottom:var(--space-sm);">你更喜欢什么样的出行方式？</div>
+        <div class="style-options">
+          <label class="style-option" onclick="App.selectStyle('quiet')">
+            <input type="radio" name="activityStyle" value="quiet">
+            <span class="style-icon">🧘</span><span>安静独处</span>
+            <small>书店、公园、美术馆</small>
+          </label>
+          <label class="style-option" onclick="App.selectStyle('social')">
+            <input type="radio" name="activityStyle" value="social">
+            <span class="style-icon">👥</span><span>社交聚会</span>
+            <small>咖啡馆、餐厅、市场</small>
+          </label>
+          <label class="style-option" onclick="App.selectStyle('active')">
+            <input type="radio" name="activityStyle" value="active">
+            <span class="style-icon">🏃</span><span>运动活力</span>
+            <small>公园、景点、运动场</small>
+          </label>
+          <label class="style-option" onclick="App.selectStyle('balanced')">
+            <input type="radio" name="activityStyle" value="balanced" checked>
+            <span class="style-icon">🎲</span><span>随心所欲</span>
+            <small>什么都来一点</small>
+          </label>
+        </div>
+      </div>
+      <div style="text-align:left;margin-bottom:var(--space-lg);">
+        <div style="font-weight:600;margin-bottom:var(--space-sm);">
+          最大步行时长：<span id="walkTimeLabel">60 分钟</span>
+        </div>
+        <input type="range" id="walkTimeSlider" min="20" max="90" value="60" step="5"
+          oninput="App.updateWalkTimeLabel(this.value)"
+          class="settings-range">
+      </div>
+      <button class="btn btn-primary" onclick="App.savePreferences()" style="width:100%;">
+        ✅ 保存偏好
+      </button>
+    </div>
+  </div>
+
+  <!-- ========== 地图预览弹窗（新增） ========== -->
+  <div class="modal-overlay hidden" id="mapModal" onclick="if(event.target===this)App.closeMap()">
+    <div class="map-dialog">
+      <div class="map-header">
+        <h3>🗺️ 路线预览</h3>
+        <button class="btn-map-close" onclick="App.closeMap()">✕</button>
+      </div>
+      <div class="map-container" id="mapContainer">
+        <div id="miniMap" style="width:100%;height:100%;min-height:300px;background:var(--color-border);display:flex;align-items:center;justify-content:center;color:var(--color-text-secondary);border-radius:var(--radius-md);">
+          <div style="text-align:center;">
+            <div style="font-size:48px;">🗺️</div>
+            <div id="mapLoadingText">生成路线图中…</div>
+          </div>
+        </div>
+      </div>
+      <div class="map-route-list" id="mapRouteList"></div>
+      <button class="btn btn-primary" onclick="App.openInMapApp()" style="width:100%;margin-top:var(--space-md);">
+        📍 在系统地图中打开
+      </button>
+    </div>
+  </div>
+
 </div><!-- /app-container -->
 
+<script src="js/api.js"></script>
+<script src="js/weather.js"></script>
+<script src="js/location.js"></script>
+<script src="js/places.js"></script>
+<script src="js/ai-engine.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/tasks.js"></script>
 <script src="js/pet.js"></script>

@@ -121,11 +121,70 @@ const Tasks = (function () {
   }
 
   /**
+   * 天气感知任务权重映射
+   * 根据天气代码调整各类任务的出现概率
+   */
+  function getWeatherWeightedTasks(weatherCode) {
+    var all = getAllTasks();
+    // 如果没有天气或任务太少，直接随机
+    if (weatherCode === undefined || weatherCode === null || all.length < 3) {
+      var idx = Math.floor(Math.random() * all.length);
+      return all[idx];
+    }
+
+    // 根据天气给任务加权
+    var scored = all.map(function (t) {
+      var score = 1;
+      var title = t.title;
+
+      // 晴好天气：户外活动类加权
+      if (weatherCode <= 2) {
+        if (title.indexOf('公园') !== -1 || title.indexOf('散步') !== -1 || title.indexOf('爬山') !== -1 || title.indexOf('骑行') !== -1 || title.indexOf('兜风') !== -1) score += 3;
+      }
+      // 雨天：室内/半室内加权
+      if (weatherCode >= 51 && weatherCode <= 65) {
+        if (title.indexOf('书店') !== -1 || title.indexOf('咖啡') !== -1 || title.indexOf('博物馆') !== -1 || title.indexOf('超市') !== -1 || title.indexOf('便利店') !== -1 || title.indexOf('取快递') !== -1) score += 3;
+        if (title.indexOf('爬山') !== -1 || title.indexOf('骑行') !== -1) score -= 2;
+      }
+      // 雪天
+      if (weatherCode >= 71 && weatherCode <= 77) {
+        if (title.indexOf('书店') !== -1 || title.indexOf('咖啡') !== -1 || title.indexOf('博物馆') !== -1 || title.indexOf('电影') !== -1) score += 3;
+        if (title.indexOf('散步') !== -1 && title.indexOf('太阳') === -1) score -= 1;
+      }
+      // 高温
+      if (weatherCode >= 80) {
+        if (title.indexOf('书店') !== -1 || title.indexOf('咖啡') !== -1 || title.indexOf('电影') !== -1 || title.indexOf('博物馆') !== -1) score += 3;
+        if (title.indexOf('爬山') !== -1 || title.indexOf('骑行') !== -1) score -= 3;
+      }
+
+      // 难度偏好影响
+      var profile = Storage.getProfile();
+      if (profile && profile.difficultyPreference !== 'auto') {
+        if (t.difficulty === profile.difficultyPreference) score += 2;
+      }
+
+      return { task: t, score: Math.max(1, score) };
+    });
+
+    // 按权重随机选择
+    var totalWeight = 0;
+    for (var i = 0; i < scored.length; i++) { totalWeight += scored[i].score; }
+    var rand = Math.random() * totalWeight;
+    var cumulative = 0;
+    for (var j = 0; j < scored.length; j++) {
+      cumulative += scored[j].score;
+      if (rand <= cumulative) return scored[j].task;
+    }
+    return scored[scored.length - 1].task;
+  }
+
+  /**
    * 随机抽取一个任务
    * @param {string|null} excludeId - 排除的任务 ID（避免连续重复）
+   * @param {number|null} weatherCode - 天气代码（可选，用于加权）
    * @returns {object} 随机任务
    */
-  function getRandomTask(excludeId) {
+  function getRandomTask(excludeId, weatherCode) {
     let pool = getAllTasks();
 
     // 排除上一个任务（避免连续出现同一个）
@@ -134,6 +193,11 @@ const Tasks = (function () {
       if (filtered.length > 0) {
         pool = filtered;
       }
+    }
+
+    // 如果有天气信息，使用加权抽取
+    if (weatherCode !== undefined && weatherCode !== null && pool.length >= 3) {
+      return getWeatherWeightedTasks(weatherCode);
     }
 
     const index = Math.floor(Math.random() * pool.length);
@@ -263,6 +327,10 @@ const Tasks = (function () {
 
     Storage.saveData(data);
 
+    // 记录打卡和统计
+    Storage.recordTaskCompleted();
+    Storage.addPointsEarned(pointsEarned);
+
     let message = '🎉 任务完成！获得 ' + pointsEarned + ' 积分';
     if (leveledUp) {
       message += '\n🌟 宠物升级了！现在是 Lv.' + pet.level;
@@ -285,14 +353,18 @@ const Tasks = (function () {
 
   /**
    * 获取当前展示的任务
-   * 如果有 currentTaskId 就找对应的，否则随机给一个新的
+   * - AI 已配置 + 有网络：异步加载 AI 路线（立即返回预设任务，加载完成后回调刷新 UI）
+   * - 未配置/离线：返回预设任务
+   *
+   * @param {function} onAIRouteReady - AI 路线加载完成的回调
+   * @returns {object} 任务对象（可能是预设任务或路线任务）
    */
-  function getCurrentTask() {
+  function getCurrentTask(onAIRouteReady) {
     const user = Storage.getUser();
-    const allTasks = getAllTasks();
 
     // 尝试找到保存的任务
     if (user.currentTaskId) {
+      const allTasks = getAllTasks();
       const saved = allTasks.find(t => t.id === user.currentTaskId);
       if (saved) return saved;
     }
@@ -302,7 +374,86 @@ const Tasks = (function () {
     const data = Storage.getData();
     data.user.currentTaskId = newTask.id;
     Storage.saveData(data);
+
+    // 如果 AI 已配置，后台异步加载 AI 路线
+    if (onAIRouteReady && isAIEnabled()) {
+      generateAIRouteAsync(onAIRouteReady);
+    }
+
     return newTask;
+  }
+
+  /**
+   * 检查 AI 是否已启用
+   */
+  function isAIEnabled() {
+    const config = Storage.getAIConfig();
+    return config && config.enabled && config.endpoint && config.apiKey;
+  }
+
+  /**
+   * 异步生成 AI 路线（不阻塞 UI）
+   */
+  async function generateAIRouteAsync(callback) {
+    try {
+      const config = Storage.getAIConfig();
+      const profile = Storage.getProfile();
+      const pet = Storage.getPet();
+
+      // 如果用户还没有设置位置（城市或坐标），不自动触发 AI
+      if (!profile.city && !profile.latitude && !profile.longitude) return;
+
+      // 获取天气
+      const posResult = await Location.getPosition();
+      var weatherSummary = '';
+      if (posResult.ok && posResult.lat) {
+        const weatherResult = await Weather.getWeather(posResult.lat, posResult.lng);
+        if (weatherResult.ok) {
+          weatherSummary = weatherResult.summary;
+        }
+
+        // 搜索周边地点
+        const placesResult = await Places.searchNearby(posResult.lat, posResult.lng, {
+          style: profile.activityStyle || 'balanced',
+          categories: profile.preferredCategories || [],
+          excludeIds: profile.visitedPlaceIds || [],
+          radius: 3000
+        });
+
+        var context = {
+          profile: profile,
+          pet: pet,
+          config: config,
+          weatherSummary: weatherSummary,
+          places: placesResult.ok ? placesResult.places : []
+        };
+
+        var routeResult = await AIEngine.generateRoute(context);
+
+        if (routeResult.ok && routeResult.route) {
+          // 保存路线到缓存
+          Storage.saveRouteCache(routeResult.route);
+
+          // 更新 currentTaskId 为 AI 任务
+          var data = Storage.getData();
+          data.user.currentTaskId = 'ai_route_' + Date.now();
+          Storage.saveData(data);
+
+          // 回调通知 UI 刷新
+          if (callback) callback(routeResult.route, routeResult.source);
+        }
+      }
+    } catch (e) {
+      console.log('[Tasks] AI 路线生成异常:', e);
+      // 静默失败，UI 已显示预设任务
+    }
+  }
+
+  /**
+   * 获取当前 AI 路线（同步，从缓存读取）
+   */
+  function getCurrentRoute() {
+    return Storage.getRouteCache();
   }
 
   /**
@@ -324,7 +475,11 @@ const Tasks = (function () {
     completeTask,
     getFreeRefreshes,
     getPointsByDifficulty,
-    getGrowthByDifficulty
+    getGrowthByDifficulty,
+    // AI 扩展
+    isAIEnabled,
+    generateAIRouteAsync,
+    getCurrentRoute
   };
 
 })();
