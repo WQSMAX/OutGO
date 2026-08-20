@@ -1,0 +1,7 @@
+# 密钥和本地文件，永远不要提交到 git
+.env
+tickets.txt
+
+# Python 运行产物
+.venv/
+__pycache__/
